@@ -4,350 +4,374 @@ import json
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-import plotly.express as px
 
 # Configuration de la page
 st.set_page_config(
-    page_title="Prédiction d'Orientation Scolaire",
+    page_title="PFos ML",
     page_icon="🎓",
-    layout="wide",
+    layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# CSS personnalisé pour un design moderne
+# CSS ultra moderne et épuré
 st.markdown("""
     <style>
-    .main {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    * {
+        font-family: 'Inter', sans-serif;
     }
+    
     .stApp {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        background: #0f0f0f;
     }
-    .prediction-card {
-        background: white;
-        padding: 30px;
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        margin: 20px 0;
-    }
-    .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 25px;
-        border-radius: 15px;
+    
+    #MainMenu, footer, header {visibility: hidden;}
+    .stDeployButton {display: none;}
+    
+    /* Header */
+    .header {
         text-align: center;
-        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        padding: 4rem 0 3rem 0;
     }
-    .metric-value {
-        font-size: 48px;
-        font-weight: bold;
-        margin: 10px 0;
+    
+    .logo {
+        font-size: 2.8rem;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -0.04em;
+        margin-bottom: 0.75rem;
     }
-    .metric-label {
-        font-size: 16px;
-        opacity: 0.9;
+    
+    .logo span {
+        color: #3b82f6;
+    }
+    
+    .subtitle {
+        color: #a1a1aa;
+        font-size: 1rem;
+        font-weight: 400;
+    }
+    
+    /* Container */
+    .container {
+        max-width: 480px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+    }
+    
+    /* Inputs modernes */
+    .stTextInput > div > div > input {
+        background: #1a1a1a !important;
+        border: 1px solid #27272a !important;
+        border-radius: 12px !important;
+        color: #fff !important;
+        padding: 1rem 1.25rem !important;
+        font-size: 0.95rem !important;
+        transition: all 0.2s !important;
+    }
+    
+    .stTextInput > div > div > input:focus {
+        background: #1f1f1f !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+    }
+    
+    .stTextInput > div > div > input::placeholder {
+        color: #52525b !important;
+    }
+    
+    .stTextInput > label {
+        color: #e4e4e7 !important;
+        font-size: 0.875rem !important;
+        font-weight: 500 !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .stTextInput {
+        margin-bottom: 1.25rem !important;
+    }
+    
+    /* Bouton */
+    .stButton > button {
+        background: #3b82f6 !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 12px !important;
+        padding: 1rem 2rem !important;
+        font-size: 0.95rem !important;
+        font-weight: 600 !important;
+        width: 100% !important;
+        margin-top: 0.5rem !important;
+        transition: all 0.2s !important;
+    }
+    
+    .stButton > button:hover {
+        background: #2563eb !important;
+        transform: translateY(-1px);
+        box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.5) !important;
+    }
+    
+    /* Résultat */
+    .result {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        border: 1px solid #334155;
+        border-radius: 16px;
+        padding: 2.5rem 2rem;
+        margin: 3rem auto 2rem auto;
+        text-align: center;
+        max-width: 480px;
+    }
+    
+    .result-label {
+        color: #94a3b8;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 1rem;
+    }
+    
+    .result-value {
+        color: #fff;
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 1rem;
+    }
+    
+    .result-confidence {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+    
+    /* Chart container */
+    .chart-section {
+        background: #1a1a1a;
+        border: 1px solid #27272a;
+        border-radius: 16px;
+        padding: 2rem 1.5rem;
+        margin: 2rem auto;
+        max-width: 480px;
+    }
+    
+    .chart-title {
+        color: #e4e4e7;
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    
+    /* Messages */
+    .stAlert {
+        background: #1a1a1a !important;
+        border: 1px solid #3b82f6 !important;
+        border-radius: 12px !important;
+        color: #60a5fa !important;
+        padding: 1rem !important;
+    }
+    
+    .stWarning {
+        border-color: #f59e0b !important;
+        color: #fbbf24 !important;
+    }
+    
+    .stError {
+        border-color: #ef4444 !important;
+        color: #f87171 !important;
+    }
+    
+    /* Footer */
+    .footer {
+        text-align: center;
+        color: #52525b;
+        font-size: 0.8rem;
+        padding: 4rem 0 2rem 0;
+    }
+    
+    /* Plotly */
+    .js-plotly-plot {
+        background: transparent !important;
+    }
+    
+    .block-container {
+        padding-top: 0 !important;
+        padding-bottom: 3rem !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Charger le modèle et les métadonnées
+# Charger le modèle et les encodeurs
 @st.cache_resource
-def load_model():
-    model = joblib.load('model.pkl')
-    with open('metadata.json', 'r', encoding='utf-8') as f:
-        metadata = json.load(f)
-    return model, metadata
+def load_model_and_encoders():
+    try:
+        model = joblib.load('model.pkl')
+        label_encoders = joblib.load('label_encoders.pkl')
+        le_target = joblib.load('le_target.pkl')
+        
+        with open('metadata.json', 'r', encoding='utf-8') as f:
+            metadata = json.load(f)
+        
+        return model, label_encoders, le_target, metadata
+    except FileNotFoundError as e:
+        st.error(f"Fichier manquant: {e}")
+        st.stop()
+    except Exception as e:
+        st.error(f"Erreur: {e}")
+        st.stop()
 
 try:
-    model, metadata = load_model()
+    model, label_encoders, le_target, metadata = load_model_and_encoders()
 except Exception as e:
-    st.error(f"❌ Erreur lors du chargement du modèle: {e}")
+    st.error(f"Erreur fatale: {e}")
     st.stop()
 
-# En-tête avec design moderne
+# Header
 st.markdown("""
-    <div style='text-align: center; padding: 20px;'>
-        <h1 style='color: #667eea; font-size: 48px; margin-bottom: 10px;'>
-            🎓 Système de Prédiction d'Orientation Scolaire
-        </h1>
-        <p style='color: #666; font-size: 18px;'>
-            Découvrez l'orientation académique recommandée basée sur le profil de l'élève
-        </p>
+    <div class='header'>
+        <div class='logo'>PFos <span>ML</span></div>
+        <div class='subtitle'>Prédiction d'orientation scolaire</div>
     </div>
 """, unsafe_allow_html=True)
 
-st.markdown("---")
+# Container des inputs
+st.markdown("<div class='container'>", unsafe_allow_html=True)
 
-# Formulaire de saisie avec design amélioré
-st.markdown("<h2 style='color: #667eea;'>📝 Informations de l'élève</h2>", unsafe_allow_html=True)
+college = st.text_input(
+    "Collège",
+    placeholder="Collège Bilingue Diderot"
+)
 
-col1, col2 = st.columns(2)
+ville = st.text_input(
+    "Ville",
+    placeholder="Yaoundé"
+)
 
-with col1:
-    ville = st.text_input(
-        "🏙️ Ville", 
-        placeholder="Entrez la ville de résidence",
-        help="Ville où l'élève étudie actuellement"
-    )
-    
-    serie = st.selectbox(
-        " Série", 
-        options=["", "A", "C", "D", "Autre"],
-        help="Série actuelle de l'élève"
-    )
+serie = st.text_input(
+    "Série",
+    placeholder="A, C, D, ESF, ESP"
+)
 
-with col2:
-    souhait = st.text_input(
-        " Souhait d'orientation", 
-        placeholder="Ex: Sciences, Lettres, Technique...",
-        help="Domaine d'études souhaité par l'élève"
-    )
-    
-    code_riasec = st.selectbox(
-        "🧬 Code RIASEC",
-        options=["", "R", "I", "A", "S", "E", "C"],
-        help="Code de personnalité RIASEC (Réaliste, Investigateur, Artistique, Social, Entreprenant, Conventionnel)"
-    )
+souhait = st.text_input(
+    "Souhait d'orientation",
+    placeholder="Sciences, Lettres, Ingénierie"
+)
 
-# Bouton de prédiction stylisé
-st.markdown("<br>", unsafe_allow_html=True)
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
-    predict_button = st.button(
-        "🔮 LANCER LA PRÉDICTION", 
-        type="primary",
-        use_container_width=True
-    )
+code_riasec = st.text_input(
+    "Code RIASEC",
+    placeholder="R, I, A, S, E, C",
+    help="R: Réaliste | I: Investigateur | A: Artistique | S: Social | E: Entreprenant | C: Conventionnel"
+)
+
+predict_button = st.button("Prédire")
+
+st.markdown("</div>", unsafe_allow_html=True)
 
 # Traitement de la prédiction
 if predict_button:
-    if all([ville, serie, souhait, code_riasec]) and serie != "" and code_riasec != "":
+    if all([college, ville, serie, souhait, code_riasec]):
         try:
-            # Préparer les données d'entrée
-            input_data = pd.DataFrame({
-                'Ville': [ville],
-                'Série': [serie],
-                'souhait d\'orientation': [souhait],
-                'Code RIASEC': [code_riasec]
-            })
+            # Préparer les données
+            sample_data = [college, ville, serie, souhait, code_riasec]
+            columns = ['Collège', 'Ville', 'Série', 'souhait d\'orientation', 'Code RIASEC']
             
-            # Faire la prédiction
-            prediction = model.predict(input_data)[0]
-            proba = model.predict_proba(input_data)[0]
+            # Encoder les données
+            sample_encoded = []
+            unknown_values = []
+            
+            for i, col in enumerate(columns):
+                if col in label_encoders:
+                    try:
+                        encoded_val = label_encoders[col].transform([sample_data[i]])[0]
+                        sample_encoded.append(encoded_val)
+                    except ValueError:
+                        unknown_values.append(f"{col}: '{sample_data[i]}'")
+                        sample_encoded.append(-1)
+                else:
+                    st.error(f"Encodeur manquant pour: {col}")
+                    st.stop()
+            
+            if unknown_values:
+                st.warning("Certaines valeurs sont inconnues. Précision réduite.")
+            
+            # Convertir et prédire
+            sample_array = np.array(sample_encoded).reshape(1, -1)
+            prediction_encoded = model.predict(sample_array)[0]
+            proba = model.predict_proba(sample_array)[0]
+            prediction = le_target.inverse_transform([prediction_encoded])[0]
             max_proba = max(proba) * 100
             
-            # Créer un DataFrame des probabilités
-            proba_df = pd.DataFrame({
-                'Classe': metadata['target_classes'],
-                'Probabilité': proba * 100
-            }).sort_values('Probabilité', ascending=False)
-            
-            # Afficher les résultats
-            st.markdown("<br><br>", unsafe_allow_html=True)
-            st.markdown("""
-                <div style='text-align: center;'>
-                    <h2 style='color: #667eea; font-size: 36px;'>
-                        ✨ RÉSULTAT DE LA PRÉDICTION ✨
-                    </h2>
+            # Afficher le résultat
+            st.markdown(f"""
+                <div class='result'>
+                    <div class='result-label'>Orientation recommandée</div>
+                    <div class='result-value'>{prediction}</div>
+                    <div class='result-confidence'>
+                        <span>●</span>
+                        <span>{max_proba:.1f}% de confiance</span>
+                    </div>
                 </div>
             """, unsafe_allow_html=True)
             
-            # Cartes métriques
-            col1, col2, col3 = st.columns([1, 2, 1])
+            # Créer le DataFrame des probabilités
+            proba_df = pd.DataFrame({
+                'Classe': le_target.classes_,
+                'Probabilité': proba * 100
+            }).sort_values('Probabilité', ascending=False).head(5)
             
-            with col2:
-                st.markdown(f"""
-                    <div class='metric-card'>
-                        <div class='metric-label'>CLASSE PRÉDITE</div>
-                        <div class='metric-value'>{prediction}</div>
-                        <div class='metric-label'>Confiance: {max_proba:.2f}%</div>
-                    </div>
-                """, unsafe_allow_html=True)
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            # Graphique en barres horizontales avec Plotly
-            st.markdown("<h3 style='color: #667eea; text-align: center;'>📊 Probabilités par classe</h3>", unsafe_allow_html=True)
+            # Graphique minimaliste
+            st.markdown("<div class='chart-section'>", unsafe_allow_html=True)
+            st.markdown("<div class='chart-title'>TOP 5 ORIENTATIONS</div>", unsafe_allow_html=True)
             
             fig = go.Figure()
             
-            # Définir les couleurs avec un dégradé
-            colors = px.colors.sequential.Viridis_r
+            colors = ['#3b82f6' if i == 0 else '#27272a' for i in range(len(proba_df))]
             
             fig.add_trace(go.Bar(
                 y=proba_df['Classe'],
                 x=proba_df['Probabilité'],
                 orientation='h',
-                marker=dict(
-                    color=proba_df['Probabilité'],
-                    colorscale='Viridis',
-                    line=dict(color='white', width=2)
-                ),
-                text=proba_df['Probabilité'].apply(lambda x: f'{x:.2f}%'),
+                marker=dict(color=colors, line=dict(width=0)),
+                text=proba_df['Probabilité'].apply(lambda x: f'{x:.0f}%'),
                 textposition='outside',
-                textfont=dict(size=14, color='#333', family='Arial Black'),
-                hovertemplate='<b>%{y}</b><br>Probabilité: %{x:.2f}%<extra></extra>'
+                textfont=dict(size=12, color='#a1a1aa', family='Inter', weight=600),
+                hovertemplate='%{y}<br>%{x:.1f}%<extra></extra>'
             ))
             
             fig.update_layout(
-                title=dict(
-                    text='',
-                    font=dict(size=24, color='#667eea', family='Arial Black')
-                ),
                 xaxis=dict(
-                    title='Probabilité (%)',
-                    title_font=dict(size=16, color='#666'),
-                    tickfont=dict(size=12),
-                    showgrid=True,
-                    gridcolor='rgba(0,0,0,0.05)'
+                    showgrid=False,
+                    showticklabels=False,
+                    zeroline=False,
+                    range=[0, max(proba_df['Probabilité']) * 1.2]
                 ),
                 yaxis=dict(
-                    title='',
-                    tickfont=dict(size=14, family='Arial Black'),
-                    autorange='reversed'
+                    autorange='reversed',
+                    tickfont=dict(size=13, color='#a1a1aa', family='Inter')
                 ),
                 plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='white',
-                height=500,
-                margin=dict(l=80, r=120, t=50, b=50),
-                font=dict(family='Arial', color='#333')
+                paper_bgcolor='rgba(0,0,0,0)',
+                height=280,
+                margin=dict(l=120, r=60, t=0, b=0),
+                showlegend=False
             )
             
             st.plotly_chart(fig, use_container_width=True)
-            
-            # Graphique en camembert (pie chart) pour le top 5
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.markdown("<h3 style='color: #667eea; text-align: center;'>🥧 Répartition Top 5</h3>", unsafe_allow_html=True)
-                
-                top5_df = proba_df.head(5)
-                
-                fig_pie = go.Figure(data=[go.Pie(
-                    labels=top5_df['Classe'],
-                    values=top5_df['Probabilité'],
-                    hole=.4,
-                    marker=dict(
-                        colors=px.colors.sequential.Plasma_r,
-                        line=dict(color='white', width=3)
-                    ),
-                    textinfo='label+percent',
-                    textfont=dict(size=14, family='Arial Black'),
-                    hovertemplate='<b>%{label}</b><br>%{value:.2f}%<extra></extra>'
-                )])
-                
-                fig_pie.update_layout(
-                    showlegend=True,
-                    height=400,
-                    paper_bgcolor='white',
-                    font=dict(family='Arial', size=12),
-                    legend=dict(
-                        orientation="v",
-                        yanchor="middle",
-                        y=0.5,
-                        xanchor="left",
-                        x=1.05
-                    )
-                )
-                
-                st.plotly_chart(fig_pie, use_container_width=True)
-            
-            with col2:
-                st.markdown("<h3 style='color: #667eea; text-align: center;'>📈 Tableau détaillé</h3>", unsafe_allow_html=True)
-                
-                # Styliser le dataframe
-                styled_df = proba_df.copy()
-                styled_df['Probabilité'] = styled_df['Probabilité'].apply(lambda x: f'{x:.2f}%')
-                styled_df.index = range(1, len(styled_df) + 1)
-                
-                st.dataframe(
-                    styled_df,
-                    use_container_width=True,
-                    height=400,
-                    column_config={
-                        "Classe": st.column_config.TextColumn(
-                            "Classe",
-                            help="Classe d'orientation",
-                            width="medium",
-                        ),
-                        "Probabilité": st.column_config.TextColumn(
-                            "Probabilité",
-                            help="Pourcentage de probabilité",
-                            width="medium",
-                        )
-                    }
-                )
-            
-            # Indicateur de confiance
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            if max_proba >= 70:
-                confidence_color = "#10b981"
-                confidence_text = "EXCELLENTE"
-                confidence_icon = "🌟"
-            elif max_proba >= 50:
-                confidence_color = "#f59e0b"
-                confidence_text = "BONNE"
-                confidence_icon = "⭐"
-            else:
-                confidence_color = "#ef4444"
-                confidence_text = "FAIBLE"
-                confidence_icon = "⚠️"
-            
-            st.markdown(f"""
-                <div style='text-align: center; padding: 20px; background: white; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08);'>
-                    <span style='font-size: 24px;'>{confidence_icon}</span>
-                    <span style='color: {confidence_color}; font-size: 24px; font-weight: bold; margin-left: 10px;'>
-                        Confiance {confidence_text}
-                    </span>
-                </div>
-            """, unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
             
         except Exception as e:
-            st.error(f" Erreur lors de la prédiction: {e}")
+            st.error(f"Erreur lors de la prédiction: {e}")
     else:
-        st.warning(" Veuillez remplir tous les champs avant de lancer la prédiction")
-
-# Section d'aide en bas de page
-st.markdown("<br><br>", unsafe_allow_html=True)
-st.markdown("---")
-
-with st.expander("ℹSignification des classes d'orientation"):
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("""
-        - **C** : Cycle court
-        - **EEP** : Enseignement et Formation Professionnelle
-        - **G0, G1, G2, G3, G4** : Différents niveaux d'enseignement général
-        """)
-    
-    with col2:
-        st.markdown("""
-        - **ND** : Non Déterminé
-        - **UP** : Université Publique
-        - **V** : Vie active
-        """)
-
-with st.expander("🧬 Code RIASEC - Guide"):
-    st.markdown("""
-    - **R (Réaliste)** : Préférence pour les activités physiques et manuelles
-    - **I (Investigateur)** : Goût pour la recherche et la résolution de problèmes
-    - **A (Artistique)** : Intérêt pour les activités créatives et artistiques
-    - **S (Social)** : Orientation vers l'aide et l'accompagnement des autres
-    - **E (Entreprenant)** : Aptitude pour le leadership et la gestion
-    - **C (Conventionnel)** : Préférence pour les tâches organisées et structurées
-    """)
+        st.warning("Veuillez remplir tous les champs")
 
 # Footer
-st.markdown("<br>", unsafe_allow_html=True)
-st.markdown("""
-    <div style='text-align: center; color: gray; padding: 20px;'>
-        <p style='font-size: 14px;'>
-             Système de Prédiction d'Orientation Scolaire | 
-            Propulsé par <strong>XGBoost</strong> et <strong>Streamlit</strong>
-        </p>
-    </div>
-""", unsafe_allow_html=True)
+st.markdown("<div class='footer'>PFos ML © 2025</div>", unsafe_allow_html=True)
